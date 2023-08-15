@@ -1,0 +1,11 @@
+[package]
+name = "block_byte_model_exporter"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+json = "0.12.4"
+endio = "0.1.0"
+uuid = "1.4.1"
