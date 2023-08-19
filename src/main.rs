@@ -13,9 +13,10 @@ fn main() {
     .expect("malformed model file");
     let mut cubes = HashMap::new();
     for element in json["elements"].members() {
-        let (element, id) = CubeElement::from_json(element);
-        cubes.insert(id, element);
+        let (cube, id) = CubeElement::from_json(element);
+        cubes.insert(id, cube);
     }
+
     let root_bone = Bone::children_from_json(
         &json["outliner"],
         &mut cubes,
@@ -87,7 +88,7 @@ impl Bone {
         Self::children_from_json(
             &json["children"],
             cubes,
-            Vec3::from_json(&json["origin"]),
+            Vec3::from_json_pos(&json["origin"]),
             json["name"].as_str().unwrap().to_string(),
         )
     }
@@ -104,11 +105,18 @@ impl Vec3 {
         data.write_be(self.y).unwrap();
         data.write_be(self.z).unwrap();
     }
-    pub fn from_json(json: &JsonValue) -> Self {
+    pub fn from_json_pos(json: &JsonValue) -> Self {
         Vec3 {
-            x: json[0].as_f32().unwrap(),
-            y: json[0].as_f32().unwrap(),
-            z: json[0].as_f32().unwrap(),
+            x: json[0].as_f32().unwrap() / 16.,
+            y: json[1].as_f32().unwrap() / 16.,
+            z: json[2].as_f32().unwrap() / 16.,
+        }
+    }
+    pub fn from_json_rot(json: &JsonValue) -> Self {
+        Vec3 {
+            x: json[0].as_f32().unwrap().to_radians(),
+            y: json[1].as_f32().unwrap().to_radians(),
+            z: json[2].as_f32().unwrap().to_radians(),
         }
     }
 }
@@ -144,8 +152,8 @@ impl CubeElement {
         self.down.to_stream(data);
     }
     pub fn from_json(json: &JsonValue) -> (Self, uuid::Uuid) {
-        let from = Vec3::from_json(&json["from"]);
-        let to = Vec3::from_json(&json["to"]);
+        let from = Vec3::from_json_pos(&json["from"]);
+        let to = Vec3::from_json_pos(&json["to"]);
         let rotation = &json["rotation"];
         let faces = &json["faces"];
         (
@@ -163,9 +171,9 @@ impl CubeElement {
                         z: 0.,
                     }
                 } else {
-                    Vec3::from_json(rotation)
+                    Vec3::from_json_rot(rotation)
                 },
-                origin: Vec3::from_json(&json["origin"]),
+                origin: Vec3::from_json_pos(&json["origin"]),
                 front: CubeElementFace::from_json(&faces["north"]),
                 back: CubeElementFace::from_json(&faces["south"]),
                 left: CubeElementFace::from_json(&faces["west"]),
@@ -194,10 +202,10 @@ impl CubeElementFace {
     pub fn from_json(json: &JsonValue) -> Self {
         let uv = &json["uv"];
         CubeElementFace {
-            u1: uv[0].as_f32().unwrap(),
-            v1: uv[1].as_f32().unwrap(),
-            u2: uv[2].as_f32().unwrap(),
-            v2: uv[3].as_f32().unwrap(),
+            u1: uv[0].as_f32().unwrap() / 16.,
+            v1: uv[1].as_f32().unwrap() / 16.,
+            u2: uv[2].as_f32().unwrap() / 16.,
+            v2: uv[3].as_f32().unwrap() / 16.,
         }
     }
 }
