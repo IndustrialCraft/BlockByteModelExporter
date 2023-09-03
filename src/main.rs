@@ -12,6 +12,11 @@ fn main() {
             .as_str(),
     )
     .expect("malformed model file");
+    let texture_resolution = &json["resolution"];
+    let texture_resolution = (
+        texture_resolution["width"].as_u32().unwrap(),
+        texture_resolution["height"].as_u32().unwrap(),
+    );
     let mut elements = HashMap::new();
     for element in json["elements"].members() {
         let name = element["name"].as_str().unwrap();
@@ -19,7 +24,7 @@ fn main() {
             let (element, id) = ItemElement::from_json(name.replacen("item_", "", 1), element);
             (id, Either::Right(element))
         } else {
-            let (element, id) = CubeElement::from_json(element);
+            let (element, id) = CubeElement::from_json(element, &texture_resolution);
             (id, Either::Left(element))
         };
         elements.insert(id, cube);
@@ -279,7 +284,7 @@ impl CubeElement {
         self.up.to_stream(data);
         self.down.to_stream(data);
     }
-    pub fn from_json(json: &JsonValue) -> (Self, uuid::Uuid) {
+    pub fn from_json(json: &JsonValue, resolution: &(u32, u32)) -> (Self, uuid::Uuid) {
         let from = Vec3::from_json_pos(&json["from"]);
         let to = Vec3::from_json_pos(&json["to"]);
         let rotation = &json["rotation"];
@@ -302,12 +307,12 @@ impl CubeElement {
                     Vec3::from_json_rot(rotation)
                 },
                 origin: Vec3::from_json_pos(&json["origin"]),
-                front: CubeElementFace::from_json(&faces["north"]),
-                back: CubeElementFace::from_json(&faces["south"]),
-                left: CubeElementFace::from_json(&faces["west"]),
-                right: CubeElementFace::from_json(&faces["east"]),
-                up: CubeElementFace::from_json(&faces["up"]),
-                down: CubeElementFace::from_json(&faces["down"]),
+                front: CubeElementFace::from_json(&faces["north"], resolution),
+                back: CubeElementFace::from_json(&faces["south"], resolution),
+                left: CubeElementFace::from_json(&faces["west"], resolution),
+                right: CubeElementFace::from_json(&faces["east"], resolution),
+                up: CubeElementFace::from_json(&faces["up"], resolution),
+                down: CubeElementFace::from_json(&faces["down"], resolution),
             },
             uuid::Uuid::from_str(json["uuid"].as_str().unwrap()).unwrap(),
         )
@@ -327,13 +332,13 @@ impl CubeElementFace {
         data.write_be(self.u2).unwrap();
         data.write_be(self.v2).unwrap();
     }
-    pub fn from_json(json: &JsonValue) -> Self {
+    pub fn from_json(json: &JsonValue, resolution: &(u32, u32)) -> Self {
         let uv = &json["uv"];
         CubeElementFace {
-            u1: uv[0].as_f32().unwrap() / 64.,
-            v1: uv[1].as_f32().unwrap() / 64.,
-            u2: uv[2].as_f32().unwrap() / 64.,
-            v2: uv[3].as_f32().unwrap() / 64.,
+            u1: uv[0].as_f32().unwrap() / resolution.0 as f32,
+            v1: uv[1].as_f32().unwrap() / resolution.1 as f32,
+            u2: uv[2].as_f32().unwrap() / resolution.0 as f32,
+            v2: uv[3].as_f32().unwrap() / resolution.1 as f32,
         }
     }
 }
